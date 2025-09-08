@@ -38,4 +38,8 @@
 	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="PowerShell.exe -ExecutionPolicy Bypass -Command &quot;&amp; '$(SolutionDir)\build-release.ps1'&quot;" />
+  </Target>
+
 </Project>
