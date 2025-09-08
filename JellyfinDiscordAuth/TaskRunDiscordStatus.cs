@@ -34,7 +34,7 @@ namespace JellyfinDiscordAuth
         {
             var trigger = new TaskTriggerInfo
             {
-                Type = TaskTriggerInfoType.IntervalTrigger,
+                Type = TaskTriggerInfo.TriggerInterval,
                 DayOfWeek = 0,
                 IntervalTicks = 600000000, // 1 minute
             };
