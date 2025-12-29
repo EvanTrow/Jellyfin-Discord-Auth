@@ -2,13 +2,13 @@ Write-Host "Starting release build process..."
 
 $zipPath = "JellyfinDiscordAuth.zip"
 $filesToZip = @(
-    "bin\Debug\net8.0\JellyfinDiscordAuth.dll", 
-    "bin\Debug\net8.0\Discord.Net.Webhook.dll", 
-    "bin\Debug\net8.0\Discord.Net.WebSocket.dll", 
-    "bin\Debug\net8.0\Discord.Net.Interactions.dll", 
-    "bin\Debug\net8.0\Discord.Net.Rest.dll", 
-    "bin\Debug\net8.0\Discord.Net.Commands.dll", 
-    "bin\Debug\net8.0\Discord.Net.Core.dll", 
+    "bin\Debug\net9.0\JellyfinDiscordAuth.dll", 
+    "bin\Debug\net9.0\Discord.Net.Webhook.dll", 
+    "bin\Debug\net9.0\Discord.Net.WebSocket.dll", 
+    "bin\Debug\net9.0\Discord.Net.Interactions.dll", 
+    "bin\Debug\net9.0\Discord.Net.Rest.dll", 
+    "bin\Debug\net9.0\Discord.Net.Commands.dll", 
+    "bin\Debug\net9.0\Discord.Net.Core.dll", 
     "meta.json")
 
 if (Test-Path $zipPath) {
@@ -44,10 +44,10 @@ $manifest = @(
         owner       = "EvanTrow"
         versions    = @(
             @{
-                changelog = "1.0.0.0: Initial Release`n"
+                changelog = "1.0.0.0: Initial Release....`n"
                 checksum  = (Get-FileHash $zipPath -Algorithm MD5).Hash
-                sourceUrl = "https://trowbridge.tech/jellyfin/JellyfinDiscordAuth.zip"
-                targetAbi = "10.10.0.0"
+                sourceUrl = "http://192.168.1.10:56080/jellyfin/discord/JellyfinDiscordAuth.zip"
+                targetAbi = "10.11.0.0"
                 timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
                 version   = "1.0.0.0"
             }

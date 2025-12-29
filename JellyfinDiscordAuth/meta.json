@@ -1,13 +1,13 @@
 {
-    "category": "Authentication",
-    "changelog": "1.0.0.0: Initial Release\n",
-    "description": "This plugin allows users to sign in with Discord.",
-    "guid": "359a7d2a-1c54-4e70-abbb-01bc73f098cf",
-    "imageUrl": "https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/main/img/logo.png",
-    "name": "Discord Authentication",
-    "overview": "Users can login with Discord",
-    "owner": "EvanTrow",
-    "targetAbi": "10.9.0.0",
-    "timestamp": "2025-03-31T13:35:04Z",
-    "version": "1.0.0.0"
+	"category": "Authentication",
+	"changelog": "1.0.0.0: Initial Release\n",
+	"description": "This plugin allows users to sign in with Discord.",
+	"guid": "359a7d2a-1c54-4e70-abbb-01bc73f098cf",
+	"imageUrl": "https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/main/img/logo.png",
+	"name": "Discord Authentication",
+	"overview": "Users can login with Discord",
+	"owner": "EvanTrow",
+	"targetAbi": "10.11.0.0",
+	"timestamp": "2025-03-31T13:35:04Z",
+	"version": "1.0.0.0"
 }
