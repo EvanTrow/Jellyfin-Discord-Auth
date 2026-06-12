@@ -58,6 +58,7 @@ namespace JellyfinDiscordAuth.Api
         }
 
         [HttpGet("ConfigurationData")]
+        [Authorize(Policy = "RequiresElevation")]
         [Produces(MediaTypeNames.Application.Json)]
         public IActionResult GetConfigurationData()
         {

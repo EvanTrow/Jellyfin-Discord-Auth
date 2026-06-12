@@ -7,7 +7,7 @@
 	"name": "Discord Authentication",
 	"overview": "Users can login with Discord",
 	"owner": "EvanTrow",
-	"targetAbi": "10.11.0.0",
+	"targetAbi": "10.11.0",
 	"timestamp": "2025-03-31T13:35:04Z",
 	"version": "1.1.0.0"
 }

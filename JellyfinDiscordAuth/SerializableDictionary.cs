@@ -10,6 +10,7 @@ using System.Xml.Serialization;
 [XmlRoot("dictionary")]
 public class SerializableDictionary<TKey, TValue>
     : Dictionary<TKey, TValue>, IXmlSerializable
+    where TKey : notnull
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SerializableDictionary{TKey,TValue}"/> class.
@@ -70,7 +71,7 @@ public class SerializableDictionary<TKey, TValue>
     /// Gets the schema of the XML object.
     /// </summary>
     /// <returns>Nothing.</returns>
-    public System.Xml.Schema.XmlSchema GetSchema()
+    public System.Xml.Schema.XmlSchema? GetSchema()
     {
         return null;
     }
@@ -97,11 +98,11 @@ public class SerializableDictionary<TKey, TValue>
             reader.ReadStartElement("item");
 
             reader.ReadStartElement("key");
-            TKey key = (TKey)keySerializer.Deserialize(reader);
+            TKey key = (TKey)keySerializer.Deserialize(reader)!;
             reader.ReadEndElement();
 
             reader.ReadStartElement("value");
-            TValue value = (TValue)valueSerializer.Deserialize(reader);
+            TValue value = (TValue)valueSerializer.Deserialize(reader)!;
             reader.ReadEndElement();
 
             this.Add(key, value);
