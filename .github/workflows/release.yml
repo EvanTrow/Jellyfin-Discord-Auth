@@ -115,7 +115,7 @@ jobs:
           git push origin "$BRANCH"
           echo "pushed=true" >> "$GITHUB_OUTPUT"
 
-      - name: Create and merge manifest PR
+      - name: Create and auto-merge manifest PR
         if: steps.check.outputs.skip == 'false' && steps.push_branch.outputs.pushed == 'true'
         id: create_pr
         env:
@@ -127,20 +127,7 @@ jobs:
             --head "$BRANCH" \
             --title "chore: update manifest for v${{ steps.meta.outputs.version }}" \
             --body "Automated manifest update for release v${{ steps.meta.outputs.version }}."
-
-          echo "Waiting for PR to become mergeable..."
-          for i in $(seq 1 18); do
-            STATE=$(gh pr view "$BRANCH" --json mergeStateStatus --jq '.mergeStateStatus')
-            echo "  attempt $i/18: mergeStateStatus=$STATE"
-            if [ "$STATE" = "MERGEABLE" ]; then
-              gh pr merge "$BRANCH" --squash --delete-branch
-              exit 0
-            fi
-            [ "$STATE" = "CONFLICTING" ] && echo "::error::PR has merge conflicts." && exit 1
-            sleep 10
-          done
-          echo "::error::PR did not become mergeable after 3 minutes."
-          exit 1
+          gh pr merge "$BRANCH" --auto --squash --delete-branch
 
       # Rollback steps — run in reverse dependency order so partial failures are fully cleaned up
 
