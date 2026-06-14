@@ -115,7 +115,7 @@ jobs:
           git push origin "$BRANCH"
           echo "pushed=true" >> "$GITHUB_OUTPUT"
 
-      - name: Create and auto-merge manifest PR
+      - name: Create and merge manifest PR
         if: steps.check.outputs.skip == 'false' && steps.push_branch.outputs.pushed == 'true'
         id: create_pr
         env:
@@ -126,7 +126,8 @@ jobs:
             --head "ci/manifest-v${{ steps.meta.outputs.version }}" \
             --title "chore: update manifest for v${{ steps.meta.outputs.version }}" \
             --body "Automated manifest update for release v${{ steps.meta.outputs.version }}."
-          gh pr merge --auto --squash
+          sleep 5
+          gh pr merge "ci/manifest-v${{ steps.meta.outputs.version }}" --squash --delete-branch
 
       # Rollback steps — run in reverse dependency order so partial failures are fully cleaned up
 
