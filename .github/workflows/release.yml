@@ -127,6 +127,7 @@ jobs:
             --head "$BRANCH" \
             --title "chore: update manifest for v${{ steps.meta.outputs.version }}" \
             --body "Automated manifest update for release v${{ steps.meta.outputs.version }}."
+          gh pr merge "$BRANCH" --squash --delete-branch 2>/dev/null || \
           gh pr merge "$BRANCH" --auto --squash --delete-branch
 
       # Rollback steps — run in reverse dependency order so partial failures are fully cleaned up
