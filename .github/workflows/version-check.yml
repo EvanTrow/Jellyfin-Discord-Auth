@@ -4,12 +4,6 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - 'JellyfinDiscordAuth/**'
-      - '*.sln'
-      - 'jellyfin.ruleset'
-      - 'build-*.ps1'
-      - 'update-timestamp.ps1'
 
 jobs:
   version-check:
@@ -21,7 +15,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Detect whether source files changed
+        id: changed
+        run: |
+          CHANGED=$(git diff --name-only origin/main...HEAD)
+          if echo "$CHANGED" | grep -qE '^JellyfinDiscordAuth/|^[^/]+\.(sln|ruleset|ps1)$'; then
+            echo "requires_check=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "requires_check=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Get versions
+        if: steps.changed.outputs.requires_check == 'true'
         id: versions
         run: |
           PR_VER=$(jq -r '.version' JellyfinDiscordAuth/meta.json)
@@ -30,6 +35,7 @@ jobs:
           echo "main=$MAIN_VER" >> "$GITHUB_OUTPUT"
 
       - name: Verify version is incremented
+        if: steps.changed.outputs.requires_check == 'true'
         run: |
           PR_VER="${{ steps.versions.outputs.pr }}"
           MAIN_VER="${{ steps.versions.outputs.main }}"
