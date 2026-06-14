@@ -1,0 +1,45 @@
+name: Version check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get versions
+        id: versions
+        run: |
+          PR_VER=$(jq -r '.version' JellyfinDiscordAuth/meta.json)
+          MAIN_VER=$(git show origin/main:JellyfinDiscordAuth/meta.json | jq -r '.version')
+          echo "pr=$PR_VER" >> "$GITHUB_OUTPUT"
+          echo "main=$MAIN_VER" >> "$GITHUB_OUTPUT"
+
+      - name: Verify version is incremented
+        run: |
+          PR_VER="${{ steps.versions.outputs.pr }}"
+          MAIN_VER="${{ steps.versions.outputs.main }}"
+
+          echo "main: $MAIN_VER"
+          echo "PR:   $PR_VER"
+
+          if [ "$PR_VER" = "$MAIN_VER" ]; then
+            echo "::error file=JellyfinDiscordAuth/meta.json::Version must be incremented before merging to main (currently $MAIN_VER)."
+            exit 1
+          fi
+
+          LOWER=$(printf '%s\n%s' "$PR_VER" "$MAIN_VER" | sort -V | head -1)
+          if [ "$LOWER" = "$PR_VER" ]; then
+            echo "::error file=JellyfinDiscordAuth/meta.json::PR version ($PR_VER) must be greater than main ($MAIN_VER)."
+            exit 1
+          fi
+
+          echo "Version check passed: $MAIN_VER → $PR_VER"
