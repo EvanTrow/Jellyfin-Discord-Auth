@@ -1,0 +1,36 @@
+[
+  {
+    "category": "Authentication",
+    "description": "This plugin allows users to sign in with Discord.",
+    "guid": "359a7d2a-1c54-4e70-abbb-01bc73f098cf",
+    "name": "Discord Authentication",
+    "overview": "Users can login with Discord",
+    "owner": "EvanTrow",
+    "versions": [
+      {
+        "changelog": "GitHub CI/CD for automated releases.\r\nJellyfin 10.11 build compatibility (nullable errors + targetAbi)\r\nmigrate ruleset from FxCopAnalyzers to NetAnalyzers.",
+        "checksum": "AE6D814F0F1812FDEDFD10310007D945",
+        "sourceUrl": "https://github.com/EvanTrow/Jellyfin-Discord-Auth/releases/download/v1.1.0.1/JellyfinDiscordAuth.zip",
+        "targetAbi": "10.11.0.0",
+        "timestamp": "2026-06-14T19:48:05Z",
+        "version": "1.1.0.1"
+      },
+      {
+        "changelog": "Added library and admin role mapping to the plugin settings.",
+        "checksum": "BCAC1F30C47B747147274BB27B72CD93",
+        "sourceUrl": "https://github.com/EvanTrow/Jellyfin-Discord-Auth/releases/download/v1.1.0.0/JellyfinDiscordAuth.zip",
+        "targetAbi": "10.11.0.0",
+        "timestamp": "2026-04-26T17:39:57Z",
+        "version": "1.1.0.0"
+      },
+      {
+        "changelog": "Initial Release...",
+        "checksum": "EBA94DDC559B69A761C6E0A183EAF6EC",
+        "sourceUrl": "https://github.com/EvanTrow/Jellyfin-Discord-Auth/releases/download/v1.0.0.0/JellyfinDiscordAuth.zip",
+        "targetAbi": "10.11.0.0",
+        "timestamp": "2025-12-29T17:25:31Z",
+        "version": "1.0.0.0"
+      }
+    ]
+  }
+]

@@ -43,15 +43,11 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
-  <!-- <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="PowerShell.exe -ExecutionPolicy Bypass -Command &quot;&amp; '$(SolutionDir)\build-release.ps1'&quot;" />
-  </Target> -->
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Release'">
-    <Exec Command="PowerShell.exe -ExecutionPolicy Bypass -Command &quot;&amp; '$(SolutionDir)\build-release.ps1'&quot;" />
+  <Target Name="UpdateMetaTimestamp" BeforeTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <Exec Command="PowerShell.exe -ExecutionPolicy Bypass -File &quot;$(SolutionDir)update-timestamp.ps1&quot;" />
   </Target>
 
-  <Target Name="PostBuildDebug" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Debug'">
+  <Target Name="PostBuildDebug" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Debug' And $([MSBuild]::IsOSPlatform('Windows'))">
     <Exec Command="PowerShell.exe -ExecutionPolicy Bypass -Command &quot;&amp; '$(SolutionDir)\build-debug.ps1'&quot;" />
   </Target>
 
