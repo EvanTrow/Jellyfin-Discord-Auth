@@ -121,13 +121,26 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          BRANCH="ci/manifest-v${{ steps.meta.outputs.version }}"
           gh pr create \
             --base main \
-            --head "ci/manifest-v${{ steps.meta.outputs.version }}" \
+            --head "$BRANCH" \
             --title "chore: update manifest for v${{ steps.meta.outputs.version }}" \
             --body "Automated manifest update for release v${{ steps.meta.outputs.version }}."
-          sleep 5
-          gh pr merge "ci/manifest-v${{ steps.meta.outputs.version }}" --squash --delete-branch
+
+          echo "Waiting for PR to become mergeable..."
+          for i in $(seq 1 18); do
+            STATE=$(gh pr view "$BRANCH" --json mergeStateStatus --jq '.mergeStateStatus')
+            echo "  attempt $i/18: mergeStateStatus=$STATE"
+            if [ "$STATE" = "MERGEABLE" ]; then
+              gh pr merge "$BRANCH" --squash --delete-branch
+              exit 0
+            fi
+            [ "$STATE" = "CONFLICTING" ] && echo "::error::PR has merge conflicts." && exit 1
+            sleep 10
+          done
+          echo "::error::PR did not become mergeable after 3 minutes."
+          exit 1
 
       # Rollback steps — run in reverse dependency order so partial failures are fully cleaned up
 
