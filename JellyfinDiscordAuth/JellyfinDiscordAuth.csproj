@@ -5,6 +5,8 @@
     <RootNamespace>JellyfinDiscordAuth</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,11 +40,15 @@
 	  <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
-  <Target Name="UpdateMetaTimestamp" BeforeTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
-    <Exec Command="PowerShell.exe -ExecutionPolicy Bypass -File &quot;$(SolutionDir)update-timestamp.ps1&quot;" />
+  <!-- <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="PowerShell.exe -ExecutionPolicy Bypass -Command &quot;&amp; '$(SolutionDir)\build-release.ps1'&quot;" />
+  </Target> -->
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Release'">
+    <Exec Command="PowerShell.exe -ExecutionPolicy Bypass -Command &quot;&amp; '$(SolutionDir)\build-release.ps1'&quot;" />
   </Target>
 
-  <Target Name="PostBuildDebug" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Debug' And $([MSBuild]::IsOSPlatform('Windows'))">
+  <Target Name="PostBuildDebug" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Debug'">
     <Exec Command="PowerShell.exe -ExecutionPolicy Bypass -Command &quot;&amp; '$(SolutionDir)\build-debug.ps1'&quot;" />
   </Target>
 
