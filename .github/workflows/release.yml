@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout
@@ -66,6 +67,7 @@ jobs:
 
       - name: Create GitHub release
         if: steps.check.outputs.skip == 'false'
+        id: create_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -96,22 +98,46 @@ jobs:
 
           jq --argjson versions "$ALL_VERSIONS" '.[0].versions = $versions' manifest.json > tmp.json && mv tmp.json manifest.json
 
-      - name: Commit updated manifest
+      - name: Push manifest branch
         if: steps.check.outputs.skip == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        id: push_branch
         run: |
           BRANCH="ci/manifest-v${{ steps.meta.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
           git add manifest.json
-          git diff --staged --quiet && exit 0
+          if git diff --staged --quiet; then
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           git commit -m "chore: update manifest for v${{ steps.meta.outputs.version }}"
           git push origin "$BRANCH"
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Create and auto-merge manifest PR
+        if: steps.check.outputs.skip == 'false' && steps.push_branch.outputs.pushed == 'true'
+        id: create_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
           gh pr create \
             --base main \
-            --head "$BRANCH" \
+            --head "ci/manifest-v${{ steps.meta.outputs.version }}" \
             --title "chore: update manifest for v${{ steps.meta.outputs.version }}" \
             --body "Automated manifest update for release v${{ steps.meta.outputs.version }}."
           gh pr merge --auto --squash
+
+      # Rollback steps — run in reverse dependency order so partial failures are fully cleaned up
+
+      - name: Rollback - delete manifest branch
+        if: failure() && steps.push_branch.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: git push origin --delete "ci/manifest-v${{ steps.meta.outputs.version }}" || true
+
+      - name: Rollback - delete GitHub release and tag
+        if: failure() && steps.create_release.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release delete "v${{ steps.meta.outputs.version }}" --yes --cleanup-tag
