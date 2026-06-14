@@ -1,65 +1,49 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Net.Mime;
-using System.Security.Cryptography;
-using System.Threading;
+using System.Reflection;
 using System.Threading.Tasks;
-using Discord.WebSocket;
-using Jellyfin.Database.Implementations.Entities;
-using JellyfinDiscordAuth.Configuration;
-using MediaBrowser.Controller.Configuration;
+using JellyfinDiscordAuth.Services;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Controller.Net;
-using MediaBrowser.Controller.Providers;
-using MediaBrowser.Controller.Session;
-using MediaBrowser.Model.Cryptography;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace JellyfinDiscordAuth.Api
 {
+    /// <summary>
+    /// API controller for Discord OAuth2 authentication.
+    /// </summary>
     [ApiController]
     [Route("DiscordAuth")]
     public class DiscordController : ControllerBase
     {
-        private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
-        private readonly ISessionManager _sessionManager;
-        private readonly IAuthorizationContext _authContext;
+        private readonly DiscordBotService _discordBotService;
+        private readonly DiscordOAuthService _oauthService;
         private readonly ILogger<DiscordController> _logger;
-        private readonly ICryptoProvider _cryptoProvider;
-        private readonly IProviderManager _providerManager;
-        private readonly IServerConfigurationManager _serverConfigurationManager;
 
-        // handles the Discord OAuth2
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DiscordController"/> class.
+        /// </summary>
         public DiscordController(
-            ILogger<DiscordController> logger,
-            ISessionManager sessionManager,
-            IUserManager userManager,
             ILibraryManager libraryManager,
-            IAuthorizationContext authContext,
-            ICryptoProvider cryptoProvider,
-            IProviderManager providerManager,
-            IServerConfigurationManager serverConfigurationManager)
+            DiscordBotService discordBotService,
+            DiscordOAuthService oauthService,
+            ILogger<DiscordController> logger)
         {
-            _sessionManager = sessionManager;
-            _userManager = userManager;
             _libraryManager = libraryManager;
-            _authContext = authContext;
-            _cryptoProvider = cryptoProvider;
+            _discordBotService = discordBotService;
+            _oauthService = oauthService;
             _logger = logger;
-
-            _providerManager = providerManager;
-            _serverConfigurationManager = serverConfigurationManager;
         }
 
+        /// <summary>
+        /// Gets library and role data for the configuration page.
+        /// </summary>
         [HttpGet("ConfigurationData")]
-        [Authorize(Policy = "RequiresElevation")]
         [Produces(MediaTypeNames.Application.Json)]
         public IActionResult GetConfigurationData()
         {
@@ -73,13 +57,14 @@ namespace JellyfinDiscordAuth.Api
                 .ToArray();
 
             var roles = Array.Empty<object>();
-            var config = DiscordAuthPlugin.Instance.Configuration;
+            var config = DiscordAuthPlugin.Instance?.Configuration;
 
-            if (!string.IsNullOrWhiteSpace(config.ServerId)
-                && ulong.TryParse(config.ServerId, out ulong serverId)
-                && DiscordAuthPlugin.Client != null)
+            if (config != null
+                && !string.IsNullOrWhiteSpace(config.ServerId)
+                && ulong.TryParse(config.ServerId, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out ulong serverId)
+                && _discordBotService.Client != null)
             {
-                var guild = DiscordAuthPlugin.Client.GetGuild(serverId);
+                var guild = _discordBotService.Client.GetGuild(serverId);
                 if (guild != null)
                 {
                     roles = guild.Roles
@@ -87,7 +72,7 @@ namespace JellyfinDiscordAuth.Api
                         .OrderByDescending(r => r.Position)
                         .Select(r => (object)new
                         {
-                            Id = r.Id.ToString(),
+                            Id = r.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
                             r.Name
                         })
                         .ToArray();
@@ -101,250 +86,136 @@ namespace JellyfinDiscordAuth.Api
             });
         }
 
-        // Generate the Discord OAuth2 authorize URL and redirect the user to Discord.
+        /// <summary>
+        /// Generates the Discord OAuth2 authorize URL and redirects the user to Discord.
+        /// </summary>
         [HttpGet("Login")]
         public IActionResult Login()
         {
-            // Get the full request URL
-            var request = HttpContext.Request;
-            var redirectUri = $"{request.Scheme}://{request.Host}/DiscordAuth/Callback";
+            var config = DiscordAuthPlugin.Instance?.Configuration;
+            if (config == null || string.IsNullOrWhiteSpace(config.ClientId))
+            {
+                return Problem("Discord authentication is not configured.");
+            }
 
-            // 1. Retrieve config (ClientId, RedirectUri, etc.)
-            var config = DiscordAuthPlugin.Instance.Configuration;
-            // 2. Build the authorize URL with the necessary query params
-            // example: https://discord.com/oauth2/authorize?response_type=code&client_id=4984984984984984984984&scope=identify%20guilds.join&state=9844984wefw9e8f4984984894wef&redirect_uri=https%3A%2F%2Fnicememe.website&prompt=consent&integration_type=0
-            string authorizeUrl = $"https://discord.com/oauth2/authorize?response_type=code&client_id={config.ClientId}&scope=identify%20email&redirect_uri={Uri.EscapeDataString(redirectUri)}&prompt=consent";
-            // 3. Redirect to Discord
+            var authorizeUrl = _oauthService.BuildAuthorizeUrl(HttpContext);
             return Redirect(authorizeUrl);
         }
 
-        // The Discord OAuth2 callback endpoint.
+        /// <summary>
+        /// The Discord OAuth2 callback endpoint.
+        /// </summary>
         [HttpGet("Callback")]
         [Produces(MediaTypeNames.Application.Json)]
-        public async Task<IActionResult> Callback([FromQuery] string code)
+        public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string? state)
         {
-            try
+            var (success, result, isError) = await _oauthService.ProcessCallbackAsync(HttpContext, code, state).ConfigureAwait(false);
+
+            if (!success)
             {
-                // Get the full request URL
-                var request = HttpContext.Request;
-                var redirectUri = $"{request.Scheme}://{request.Host}/DiscordAuth/Callback";
-
-                _logger.LogInformation("Discord OAuth2 callback with code: {code}", code);
-
-                // 1. Retrieve Discord config from PluginConfiguration:
-                var config = DiscordAuthPlugin.Instance.Configuration;
-
-                // 2. Exchange code for an access token:
-                using (var httpClient = new HttpClient())
-                {
-                    var tokenResponse = await httpClient.PostAsync(
-                        "https://discord.com/api/oauth2/token",
-                        new FormUrlEncodedContent(new Dictionary<string, string>
-                        {
-                            { "client_id", config.ClientId },
-                            { "client_secret", config.ClientSecret },
-                            { "grant_type", "authorization_code" },
-                            { "code", code },
-                            { "redirect_uri", redirectUri }
-                        }));
-                    var tokenJson = await tokenResponse.Content.ReadAsStringAsync();
-                    dynamic tokenData = JsonConvert.DeserializeObject(tokenJson);
-                    string accessToken = tokenData.access_token;
-
-                    // 3. Use the access token to fetch user info from Discord:
-                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-                    var userResponse = await httpClient.GetAsync("https://discord.com/api/users/@me");
-                    var userJson = await userResponse.Content.ReadAsStringAsync();
-                    DiscordUser userData = JsonConvert.DeserializeObject<DiscordUser>(userJson);
-                    string username = userData?.Global_name ?? userData.Username;
-                    _logger.LogInformation("Discord user data: {userJson}", userJson);
-
-                    SocketGuildUser discordUser = null;
-                    IEnumerable<SocketRole> discordUserRoles = Enumerable.Empty<SocketRole>();
-                    if (!string.IsNullOrWhiteSpace(config.ServerId.Trim()))
-                    {
-                        try
-                        {
-                            var server = DiscordAuthPlugin.Client.GetGuild(ulong.Parse(config.ServerId));
-                            await server.DownloadUsersAsync();
-                            discordUser = server.Users.FirstOrDefault(u => u.Id == ulong.Parse(userData.Id));
-                            if (discordUser == null)
-                                return Content(HtmlError("You must be a member of the server to access Jellyfin."), MediaTypeNames.Text.Html);
-                            discordUserRoles = discordUser.Roles.Where(r => !r.IsEveryone);
-                            if (discordUserRoles.Count() == 0)
-                                return Content(HtmlError($"You must have a role other than @everyone to access Jellyfin. Roles: {string.Join(", ", discordUserRoles.Select(r => r.Name))}"), MediaTypeNames.Text.Html);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error while fetching server users and roles");
-                            return Problem("Something went wrong while fetching server users and roles. Please try again later.");
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Server ID is not set in the plugin configuration, skipping role check");
-                    }
-
-                    // 4. Match or create a Jellyfin user (by Discord ID or username), then log them in:
-                    var savedDiscordUser = config?.DiscordUserData?.FirstOrDefault(x => x.Value.Id == userData.Id) ?? default;
-                    // Check if the user exists in Jellyfin:
-                    User user = savedDiscordUser.Key.ToString() == "00000000-0000-0000-0000-000000000000" ?
-                        _userManager.GetUserByName(username) ?? null :
-                        _userManager.GetUserById(savedDiscordUser.Key) ?? _userManager.GetUserByName(username) ?? null;
-                    if (user == null)
-                    {
-                        try
-                        {
-                            _logger.LogInformation("SSO user {Username} doesn't exist, creating...", username);
-                            user = await _userManager.CreateUserAsync(username).ConfigureAwait(false);
-                            user.AuthenticationProviderId = GetType().FullName;
-                            user.Password = _cryptoProvider.CreatePasswordHash(Convert.ToBase64String(RandomNumberGenerator.GetBytes(64))).ToString();
-                            await _userManager.UpdateUserAsync(user).ConfigureAwait(false);
-
-                            _logger.LogInformation("Discord user {Username} not found in config, creating...", username);
-                            savedDiscordUser = new KeyValuePair<Guid, DiscordUser>(user.Id, userData);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error creating user {Username}", username);
-                            return Problem("Something went wrong");
-                        }
-                    }
-                    else
-                    {
-                        try
-                        {
-                            _logger.LogInformation("Discord user {Username} found in config, updating...", username);
-                            savedDiscordUser = new KeyValuePair<Guid, DiscordUser>(user.Id, userData);
-
-                            user = _userManager.GetUserById(savedDiscordUser.Key);
-                            user.Username = username;
-                            await _userManager.UpdateUserAsync(user).ConfigureAwait(false);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error updating user {Username}", username);
-                            return Problem("Something went wrong");
-                        }
-                    }
-
-                    // apply folder access from discord roles
-                    await DiscordAuthPlugin.Instance.ApplyDiscordRoles(discordUser);
-
-                    // Save the Discord avatar URL:
-                    try
-                    {
-                        var avatarUrl = $"https://cdn.discordapp.com/avatars/{userData.Id}/{userData.Avatar}.png";
-
-                        using var client = new HttpClient();
-                        var avatarResponse = await client.GetAsync(avatarUrl);
-
-                        if (!avatarResponse.Content.Headers.TryGetValues("content-type", out var contentTypeList))
-                        {
-                            throw new Exception("Cannot get Content-Type of image : " + avatarUrl);
-                        }
-
-                        var contentType = contentTypeList.First();
-                        if (!contentType.StartsWith("image"))
-                        {
-                            throw new Exception("Content type of avatar URL is not an image, got :  " + contentType);
-                        }
-
-                        var extension = contentType.Split("/").Last();
-                        var stream = await avatarResponse.Content.ReadAsStreamAsync();
-                        if (user != null)
-                        {
-                            var userDataPath = Path.Combine(_serverConfigurationManager.ApplicationPaths.UserConfigurationDirectoryPath, user.Username);
-                            if (user.ProfileImage is not null)
-                            {
-                                await _userManager.ClearProfileImageAsync(user).ConfigureAwait(false);
-                            }
-
-                            user.ProfileImage = new ImageInfo(Path.Combine(userDataPath, "profile" + extension));
-                            await _providerManager.SaveImage(stream, contentType, user.ProfileImage.Path)
-                                .ConfigureAwait(false);
-                            await _userManager.UpdateUserAsync(user).ConfigureAwait(false);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogError(e.Message);
-                    }
-
-                    // Update the DiscordUserData dictionary in the config:
-                    config.DiscordUserData[savedDiscordUser.Key] = savedDiscordUser.Value;
-                    DiscordAuthPlugin.Instance.SaveConfiguration();
-
-                    // 5. Authenticate the user:
-                    var authRequest = new AuthenticationRequest();
-                    try
-                    {
-                        authRequest.UserId = user.Id;
-                        authRequest.Username = user.Username;
-                        authRequest.App = "Discord";
-                        authRequest.AppVersion = "1.0.0.0";
-                        authRequest.DeviceId = Guid.NewGuid().ToString();
-                        authRequest.DeviceName = "Discord OAuth2";
-                        var authenticationResult = await _sessionManager.AuthenticateDirect(authRequest).ConfigureAwait(false);
-                        _logger.LogInformation("Auth request created...");
-
-                        var html = $@"
-                            <html>
-                                <head>
-                                    <script>
-                                        var userId = 'user-' + '{authenticationResult.User.Id}' + '-' + '{authenticationResult.User.ServerId}';
-                                        var user = {{
-                                            Id: '{authenticationResult.User.Id}',
-                                            ServerId: '{authenticationResult.User.ServerId}',
-                                            EnableAutoLogin: true
-                                        }};
-                                        localStorage.setItem(userId, JSON.stringify(user));
-                                        var jfCreds = JSON.parse(localStorage.getItem('jellyfin_credentials')) || {{ Servers: [{{}}] }};
-                                        jfCreds['Servers'][0]['AccessToken'] = '{authenticationResult.AccessToken}';
-                                        jfCreds['Servers'][0]['UserId'] = '{authenticationResult.User.Id}';
-                                        localStorage.setItem('jellyfin_credentials', JSON.stringify(jfCreds));
-                                        localStorage.setItem('enableAutoLogin', 'true');
-                                        window.location.replace('/web/index.html');
-                                    </script>
-                                </head>
-                                <body>
-                                    <h1>Authenticating...</h1>
-                                </body>
-                            </html>";
-                        return Content(html, MediaTypeNames.Text.Html);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error authenticating user {Username}", username);
-                        return Problem("Something went wrong");
-                    }
-                }
+                return Content(HtmlError(result), MediaTypeNames.Text.Html);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during Discord OAuth2 callback");
-                return Problem("Something went wrong");
-            }
+
+            // Redirect to the completion page with the temporary exchange code
+            return Redirect($"/DiscordAuth/Complete?code={Uri.EscapeDataString(result)}");
         }
 
-        private string HtmlError(string message)
+        /// <summary>
+        /// Serves the login script that injects the Discord button on the login page.
+        /// </summary>
+        [HttpGet("LoginScript")]
+        public IActionResult GetLoginScript()
         {
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = "JellyfinDiscordAuth.Configuration.loginScript.js";
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null)
+            {
+                return NotFound();
+            }
+
+            using var reader = new StreamReader(stream);
+            return Content(reader.ReadToEnd(), "application/javascript");
+        }
+
+        /// <summary>
+        /// Serves the completion page that exchanges the temporary code for a real token.
+        /// </summary>
+        [HttpGet("Complete")]
+        [Produces(MediaTypeNames.Text.Html)]
+        public IActionResult Complete()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = "JellyfinDiscordAuth.Configuration.callbackPage.html";
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null)
+            {
+                _logger.LogError("Callback page resource not found: {ResourceName}", resourceName);
+                return Content(HtmlError("Authentication page is missing."), MediaTypeNames.Text.Html);
+            }
+
+            using var reader = new StreamReader(stream);
+            var html = reader.ReadToEnd();
+            return Content(html, MediaTypeNames.Text.Html);
+        }
+
+        /// <summary>
+        /// Exchanges a temporary code for Jellyfin authentication data.
+        /// </summary>
+        [HttpPost("Exchange")]
+        [Produces(MediaTypeNames.Application.Json)]
+        public IActionResult Exchange([FromBody] ExchangeRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request?.Code))
+            {
+                return BadRequest(new { message = "Exchange code is required." });
+            }
+
+            var session = _oauthService.ExchangeCode(request.Code);
+            if (session == null)
+            {
+                return BadRequest(new { message = "Invalid or expired exchange code." });
+            }
+
+            return Ok(new
+            {
+                accessToken = session.AccessToken,
+                userId = session.UserId.ToString(),
+                serverId = session.ServerId,
+                username = session.Username
+            });
+        }
+
+        private static string HtmlError(string message)
+        {
+            var encoded = System.Net.WebUtility.HtmlEncode(message);
             return $@"
-                <html>
-                    <head>
-                        <title>Error</title>
-                        <script>
-                            window.onload = function () {{
-                                alert('{message}');
-                                window.location.href = '/web/index.html';
-                            }};
-                        </script>
-                    </head>
-                    <body>
-                        <h1>Error</h1>
-                        <p>{message}</p>
-                    </body>
-                </html>";
+<html>
+<head>
+<title>Error</title>
+<script>
+window.onload = function () {{
+    alert(document.getElementById('err').textContent);
+    window.location.href = '/web/index.html';
+}};
+</script>
+</head>
+<body>
+<h1>Error</h1>
+<p id=""err"">{encoded}</p>
+</body>
+</html>";
         }
+    }
+
+    /// <summary>
+    /// Request model for the exchange endpoint.
+    /// </summary>
+    public class ExchangeRequest
+    {
+        /// <summary>
+        /// Gets or sets the temporary exchange code.
+        /// </summary>
+        public string? Code { get; set; }
     }
 }

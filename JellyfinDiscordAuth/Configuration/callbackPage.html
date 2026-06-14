@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Discord Auth</title>
+</head>
+<body>
+    <h1>Authenticating...</h1>
+    <script>
+        (function () {
+            var params = new URLSearchParams(window.location.search);
+            var code = params.get('code');
+            if (!code) {
+                alert('Invalid or missing authentication code.');
+                window.location.href = '/web/index.html';
+                return;
+            }
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/DiscordAuth/Exchange', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        var data = JSON.parse(xhr.responseText);
+                        var userId = 'user-' + data.userId + '-' + data.serverId;
+                        var user = {
+                            Id: data.userId,
+                            ServerId: data.serverId,
+                            EnableAutoLogin: true
+                        };
+                        localStorage.setItem(userId, JSON.stringify(user));
+                        var jfCreds = JSON.parse(localStorage.getItem('jellyfin_credentials')) || { Servers: [{}] };
+                        jfCreds['Servers'][0]['AccessToken'] = data.accessToken;
+                        jfCreds['Servers'][0]['UserId'] = data.userId;
+                        localStorage.setItem('jellyfin_credentials', JSON.stringify(jfCreds));
+                        localStorage.setItem('enableAutoLogin', 'true');
+                        window.location.replace('/web/index.html');
+                    } else {
+                        var errorMsg = 'Authentication failed. Please try again.';
+                        try {
+                            var err = JSON.parse(xhr.responseText);
+                            if (err.message) errorMsg = err.message;
+                        } catch (e) {}
+                        alert(errorMsg);
+                        window.location.href = '/web/index.html';
+                    }
+                }
+            };
+            xhr.send(JSON.stringify({ code: code }));
+        })();
+    </script>
+</body>
+</html>

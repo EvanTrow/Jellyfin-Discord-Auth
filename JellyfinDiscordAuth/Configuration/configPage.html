@@ -10,9 +10,17 @@
 				<div class="content-primary">
 					<h1>Discord Auth</h1>
 
-					<h2 class="sectionTitle">Bot Configuration</h2>
+					<h2 class="sectionTitle">Server Configuration</h2>
 
 					<form id="TemplateConfigForm">
+						<div class="inputContainer">
+							<label class="inputLabel inputLabelUnfocused" for="ServerUrl">Server URL</label>
+							<input id="ServerUrl" name="ServerUrl" type="text" is="emby-input" placeholder="https://jellyfin.example.com" />
+							<div class="fieldDescription">Required if Jellyfin is behind a reverse proxy. The public URL used to reach Jellyfin (e.g. https://jellyfin.example.com). Leave empty to auto-detect.</div>
+						</div>
+
+						<h2 class="sectionTitle">Bot Configuration</h2>
+
 						<div class="inputContainer">
 							<label class="inputLabel inputLabelUnfocused" for="ClientId">Client ID</label>
 							<input id="ClientId" name="ClientId" type="text" is="emby-input" />
@@ -139,6 +147,7 @@
 				document.querySelector('#TemplateConfigPage').addEventListener('pageshow', function () {
 					Dashboard.showLoadingMsg();
 					ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
+						document.querySelector('#ServerUrl').value = config.ServerUrl || '';
 						document.querySelector('#ClientId').value = config.ClientId;
 						document.querySelector('#ClientSecret').value = config.ClientSecret;
 						document.querySelector('#BotToken').value = config.BotToken;
@@ -167,6 +176,7 @@
 				document.querySelector('#TemplateConfigForm').addEventListener('submit', function (e) {
 					Dashboard.showLoadingMsg();
 					ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
+						config.ServerUrl = document.querySelector('#ServerUrl').value;
 						config.ClientId = document.querySelector('#ClientId').value;
 						config.ClientSecret = document.querySelector('#ClientSecret').value;
 						config.BotToken = document.querySelector('#BotToken').value;

@@ -10,6 +10,7 @@ namespace JellyfinDiscordAuth.Configuration
         public PluginConfiguration()
         {
             // sets default options
+            ServerUrl = string.Empty;
             ClientId = string.Empty;
             ClientSecret = string.Empty;
             BotToken = string.Empty;
@@ -20,6 +21,7 @@ namespace JellyfinDiscordAuth.Configuration
             DiscordUserData = new SerializableDictionary<Guid, DiscordUser>();
         }
 
+        public string ServerUrl { get; set; }
         public string ClientId { get; set; }
         public string ClientSecret { get; set; }
         public string BotToken { get; set; }
