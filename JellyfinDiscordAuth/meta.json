@@ -1,6 +1,6 @@
 {
 	"category": "Authentication",
-	"changelog": "1.1.0.0: Added library and admin role mapping to the plugin settings.\n1.0.0.0: Initial Release.\n",
+	"changelog": "GitHub CI/CD for automated releases.\r\nJellyfin 10.11 build compatibility (nullable errors + targetAbi)\r\nmigrate ruleset from FxCopAnalyzers to NetAnalyzers.",
 	"description": "This plugin allows users to sign in with Discord.",
 	"guid": "359a7d2a-1c54-4e70-abbb-01bc73f098cf",
 	"imageUrl": "https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/main/img/logo.png",
@@ -8,6 +8,6 @@
 	"overview": "Users can login with Discord",
 	"owner": "EvanTrow",
 	"targetAbi": "10.11.0",
-	"timestamp": "2025-03-31T13:35:04Z",
-	"version": "1.1.0.0"
+	"timestamp": "2026-06-14T18:15:35Z",
+	"version": "1.1.0.1"
 }
