@@ -4,12 +4,6 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - 'JellyfinDiscordAuth/**'
-      - '*.sln'
-      - 'jellyfin.ruleset'
-      - 'build-*.ps1'
-      - 'update-timestamp.ps1'
 
 jobs:
   version-check:
