@@ -4,7 +4,7 @@ This plugin lets users sign in to Jellyfin using their Discord account and syncs
 
 Plugin repository manifest URL:
 
-- https://raw.githubusercontent.com/EvanTrow/Jellyfin-Discord-Auth/main/manifest.json
+- https://raw.githubusercontent.com/EvanTrow/Jellyfin-Discord-Auth/manifests/manifest.json
 
 ## Requirements
 
@@ -20,7 +20,7 @@ Plugin repository manifest URL:
 3. Click `+ New Repository` to add a repository.
 4. Use:
    - Name: `Discord Auth` (or any name you prefer)
-   - URL: `https://raw.githubusercontent.com/EvanTrow/Jellyfin-Discord-Auth/main/manifest.json`
+   - URL: `https://raw.githubusercontent.com/EvanTrow/Jellyfin-Discord-Auth/manifests/manifest.json`
 5. Click `Add`
 6. Refresh the page and go back to `Plugins` and install `Discord-Auth`.
 7. Restart Jellyfin.
