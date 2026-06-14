@@ -1,14 +1,15 @@
 param(
-    [string]$JellyfinExe = $(if ($env:JELLYFIN_EXE_PATH) { $env:JELLYFIN_EXE_PATH } else { "C:\Program Files\Jellyfin\Server\jellyfin.exe" })
+    [string]$JellyfinExe = $(if ($env:JELLYFIN_EXE_PATH) { $env:JELLYFIN_EXE_PATH } else { "C:\Program Files\Jellyfin\Server\jellyfin.exe" }),
+    [string]$JellyfinDataPath = $(if ($env:JELLYFIN_DATA_PATH) { $env:JELLYFIN_DATA_PATH } else { Join-Path $env:LOCALAPPDATA "jellyfin" })
 )
 
-$destination = "C:\Users\evan\AppData\Local\jellyfin\plugins\Discord Authentication_1.0.0.0"
+$meta = Get-Content "meta.json" -Raw | ConvertFrom-Json
+$version = $meta.version
+$pluginName = $meta.name -replace '[\\/:*?"<>|]', '-'
+
+$pluginsRoot = Join-Path $JellyfinDataPath "plugins"
+$destination = Join-Path $pluginsRoot "${pluginName}_${version}"
 $sourceDir = "bin\Debug\net9.0"
-$jellyfinExe = $JellyfinExe
-$pluginsRoot = Join-Path $env:LOCALAPPDATA "jellyfin\plugins"
-$destination = Join-Path $pluginsRoot ("Discord Authentication_{0}" -f $pluginVersion)
-$sourceDir = "bin\Debug\net9.0"
-$jellyfinExe = "C:\Program Files\Jellyfin\Server\jellyfin.exe"
 
 $filesToCopy = @(
     "JellyfinDiscordAuth.dll",
@@ -20,17 +21,22 @@ $filesToCopy = @(
     "Discord.Net.WebSocket.dll"
 )
 
-if (-not (Test-Path $destination)) {
-    New-Item -ItemType Directory -Path $destination | Out-Null
-}
-
-# Stop Jellyfin if running
 $jellyfinProc = Get-Process -Name "jellyfin" -ErrorAction SilentlyContinue
 if ($jellyfinProc) {
     Write-Host "Stopping jellyfin.exe..."
     Stop-Process -Name "jellyfin" -Force
     Start-Sleep -Seconds 2
 }
+
+# Remove all existing copies of this plugin to prevent Jellyfin from loading duplicates
+Get-ChildItem -Path $pluginsRoot -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -like "${pluginName}_*" } |
+    ForEach-Object {
+        Write-Host "Removing old plugin directory: $($_.Name)"
+        Remove-Item $_.FullName -Recurse -Force
+    }
+
+New-Item -ItemType Directory -Path $destination | Out-Null
 
 foreach ($file in $filesToCopy) {
     $src = Join-Path $sourceDir $file
@@ -43,9 +49,9 @@ foreach ($file in $filesToCopy) {
     }
 }
 
-Write-Host "Debug copy complete."
+Write-Host "Debug copy complete to: $destination"
 
-# Restart Jellyfin if it was running
-Write-Host "Restarting jellyfin.exe..."
-Start-Process -FilePath $jellyfinExe
-
+if ($jellyfinProc) {
+    Write-Host "Restarting jellyfin.exe..."
+    Start-Process -FilePath $JellyfinExe
+}
