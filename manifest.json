@@ -8,6 +8,14 @@
     "owner": "EvanTrow",
     "versions": [
       {
+        "changelog": "Refactor Discord bot and OAuth2 flow into dedicated services.\r\nFix users being logged out immediately after Discord OAuth.\r\nFix invalid redirect_uri behind reverse proxy (Cloudflare, Traefik).\r\nFix XSS in error page.\r\nRestrict configuration endpoint to admins.\r\nAdd Discord login button on Jellyfin login page.",
+        "checksum": "E450C168F18321A680E35DB3EED313A6",
+        "sourceUrl": "https://github.com/EvanTrow/Jellyfin-Discord-Auth/releases/download/v1.1.0.2/JellyfinDiscordAuth.zip",
+        "targetAbi": "10.11.0.0",
+        "timestamp": "2026-06-14T21:26:32Z",
+        "version": "1.1.0.2"
+      },
+      {
         "changelog": "GitHub CI/CD for automated releases.\r\nJellyfin 10.11 build compatibility (nullable errors + targetAbi)\r\nmigrate ruleset from FxCopAnalyzers to NetAnalyzers.",
         "checksum": "AE6D814F0F1812FDEDFD10310007D945",
         "sourceUrl": "https://github.com/EvanTrow/Jellyfin-Discord-Auth/releases/download/v1.1.0.1/JellyfinDiscordAuth.zip",
