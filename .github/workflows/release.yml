@@ -98,9 +98,20 @@ jobs:
 
       - name: Commit updated manifest
         if: steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          BRANCH="ci/manifest-v${{ steps.meta.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
           git add manifest.json
-          git diff --staged --quiet || git commit -m "chore: update manifest for v${{ steps.meta.outputs.version }} [skip ci]"
-          git push
+          git diff --staged --quiet && exit 0
+          git commit -m "chore: update manifest for v${{ steps.meta.outputs.version }}"
+          git push origin "$BRANCH"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore: update manifest for v${{ steps.meta.outputs.version }}" \
+            --body "Automated manifest update for release v${{ steps.meta.outputs.version }}."
+          gh pr merge --auto --squash
