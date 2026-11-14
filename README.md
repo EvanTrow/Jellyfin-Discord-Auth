@@ -8,7 +8,7 @@ Plugin repository manifest URL:
 
 ## Requirements
 
-- Jellyfin 10.11.x
+- Jellyfin 12.4.x
 - A Discord server you manage
 - A Discord application with a bot
 - A stable Jellyfin URL reachable by users (HTTPS strongly recommended)

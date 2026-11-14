@@ -19,7 +19,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Read version
         id: meta
@@ -50,14 +50,14 @@ jobs:
         run: |
           mkdir -p JellyfinDiscordAuth/artifacts
           zip -j JellyfinDiscordAuth/artifacts/JellyfinDiscordAuth.zip \
-            JellyfinDiscordAuth/bin/Release/net9.0/JellyfinDiscordAuth.dll \
-            JellyfinDiscordAuth/bin/Release/net9.0/Discord.Net.Core.dll \
-            JellyfinDiscordAuth/bin/Release/net9.0/Discord.Net.Rest.dll \
-            JellyfinDiscordAuth/bin/Release/net9.0/Discord.Net.WebSocket.dll \
-            JellyfinDiscordAuth/bin/Release/net9.0/Discord.Net.Commands.dll \
-            JellyfinDiscordAuth/bin/Release/net9.0/Discord.Net.Interactions.dll \
-            JellyfinDiscordAuth/bin/Release/net9.0/Discord.Net.Webhook.dll \
-            JellyfinDiscordAuth/bin/Release/net9.0/meta.json
+            JellyfinDiscordAuth/bin/Release/net10.0/JellyfinDiscordAuth.dll \
+            JellyfinDiscordAuth/bin/Release/net10.0/Discord.Net.Core.dll \
+            JellyfinDiscordAuth/bin/Release/net10.0/Discord.Net.Rest.dll \
+            JellyfinDiscordAuth/bin/Release/net10.0/Discord.Net.WebSocket.dll \
+            JellyfinDiscordAuth/bin/Release/net10.0/Discord.Net.Commands.dll \
+            JellyfinDiscordAuth/bin/Release/net10.0/Discord.Net.Interactions.dll \
+            JellyfinDiscordAuth/bin/Release/net10.0/Discord.Net.Webhook.dll \
+            JellyfinDiscordAuth/bin/Release/net10.0/meta.json
 
       - name: Compute MD5 checksum
         if: steps.check.outputs.skip == 'false'
@@ -91,7 +91,7 @@ jobs:
             --arg checksum "$CHECKSUM" \
             --arg timestamp "$TIMESTAMP" \
             --arg sourceUrl "$SOURCE_URL" \
-            '{changelog: $changelog, checksum: $checksum, sourceUrl: $sourceUrl, targetAbi: "10.11.0.0", timestamp: $timestamp, version: $version}')
+            '{changelog: $changelog, checksum: $checksum, sourceUrl: $sourceUrl, targetAbi: "12.0.0.0", timestamp: $timestamp, version: $version}')
 
           EXISTING=$(jq --arg v "$VERSION" '[.[0].versions[] | select(.version != $v)]' manifest.json)
           ALL_VERSIONS=$(jq -n --argjson new "$NEW_VER" --argjson existing "$EXISTING" '[$new] + $existing')
