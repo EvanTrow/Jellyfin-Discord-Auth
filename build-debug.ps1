@@ -3,16 +3,26 @@ param(
     [string]$JellyfinDataPath = $(if ($env:JELLYFIN_DATA_PATH) { $env:JELLYFIN_DATA_PATH } else { Join-Path $env:LOCALAPPDATA "jellyfin" })
 )
 
-$meta = Get-Content "meta.json" -Raw | ConvertFrom-Json
+$projectFile = Join-Path $PSScriptRoot "JellyfinDiscordAuth\JellyfinDiscordAuth.csproj"
+
+Write-Host "Building $projectFile (Debug)..."
+dotnet build $projectFile -c Debug
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Build failed with exit code $LASTEXITCODE; aborting."
+    exit $LASTEXITCODE
+}
+
+$meta = Get-Content (Join-Path $PSScriptRoot "JellyfinDiscordAuth\meta.json") -Raw | ConvertFrom-Json
 $version = $meta.version
 $pluginName = $meta.name -replace '[\\/:*?"<>|]', '-'
 
 $pluginsRoot = Join-Path $JellyfinDataPath "plugins"
 $destination = Join-Path $pluginsRoot "${pluginName}_${version}"
-$sourceDir = "bin\Debug\net10.0"
+$sourceDir = Join-Path $PSScriptRoot "JellyfinDiscordAuth\bin\Debug\net10.0"
 
 $filesToCopy = @(
     "JellyfinDiscordAuth.dll",
+    "meta.json",
     "Discord.Net.Commands.dll",
     "Discord.Net.Core.dll",
     "Discord.Net.Interactions.dll",
