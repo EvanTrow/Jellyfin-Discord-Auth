@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/EvanTrow/Jellyfin-Discord-Auth/security/advisories/new
+    about: Please report security issues privately, not as a public issue.
+  - name: Setup guide
+    url: https://github.com/EvanTrow/Jellyfin-Discord-Auth#readme
+    about: Installation, Discord app/bot setup, and troubleshooting steps.

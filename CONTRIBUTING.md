@@ -4,13 +4,15 @@ Thanks for your interest in improving this plugin! This guide covers how to repo
 
 ## Reporting bugs and requesting features
 
-Open a [GitHub issue](https://github.com/EvanTrow/Jellyfin-Discord-Auth/issues) and include:
+[Open a new issue](https://github.com/EvanTrow/Jellyfin-Discord-Auth/issues/new/choose) and pick the **Bug report** or **Feature request** form. Bug reports ask for:
 
-- Jellyfin server version and OS (and Docker image, if applicable)
+- Jellyfin server version and install type (Docker, Windows, Linux, ...)
 - Plugin version (from **Dashboard → Plugins**)
 - Whether Jellyfin sits behind a reverse proxy (Cloudflare, Traefik, nginx, ...)
 - Steps to reproduce, what you expected, and what happened
 - Relevant Jellyfin log lines (search for `DiscordAuth`)
+
+Blank issues are disabled, so please use one of the forms.
 
 **Never post your Discord Client Secret, Bot Token, or Jellyfin API keys.** Redact them from logs and screenshots.
 
