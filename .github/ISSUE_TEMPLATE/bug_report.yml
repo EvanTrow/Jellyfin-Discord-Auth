@@ -75,7 +75,7 @@ body:
       label: Reverse proxy
       description: Is Jellyfin accessed through a reverse proxy or tunnel?
       options:
-        - None
+        - No proxy (direct access)
         - Cloudflare (proxy or tunnel)
         - Traefik
         - nginx / Nginx Proxy Manager
