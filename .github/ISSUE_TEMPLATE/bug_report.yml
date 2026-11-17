@@ -1,0 +1,122 @@
+name: Bug report
+description: Something isn't working as expected.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please search [existing issues](https://github.com/EvanTrow/Jellyfin-Discord-Auth/issues) first to avoid duplicates.
+
+        > [!WARNING]
+        > **Never post your Discord Client Secret, Bot Token, or Jellyfin API keys.** Redact them from logs, config, and screenshots.
+        > Security vulnerabilities should be reported privately via the [Security tab](https://github.com/EvanTrow/Jellyfin-Discord-Auth/security/advisories/new), not here.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to the Jellyfin login page
+        2. Click "Sign in with Discord"
+        3. Authorize the app in Discord
+        4. ...
+    validations:
+      required: true
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      description: Shown under Dashboard → Plugins.
+      placeholder: e.g. 1.2.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: jellyfin-version
+    attributes:
+      label: Jellyfin version
+      placeholder: e.g. 12.4.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How is Jellyfin installed?
+      options:
+        - Docker
+        - Windows
+        - Linux (package)
+        - macOS
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: proxy
+    attributes:
+      label: Reverse proxy
+      description: Is Jellyfin accessed through a reverse proxy or tunnel?
+      options:
+        - None
+        - Cloudflare (proxy or tunnel)
+        - Traefik
+        - nginx / Nginx Proxy Manager
+        - Caddy
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      multiple: true
+      options:
+        - Discord login button / login page
+        - OAuth callback / redirect
+        - Role sync / user access
+        - Discord bot connection
+        - Plugin configuration page
+        - Installation / plugin repository
+        - Other
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Jellyfin log lines mentioning `DiscordAuth` around the time of the problem. **Redact any tokens or secrets.** This is automatically formatted as code.
+      render: shell
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Screenshots, browser console errors, configuration details (redacted), anything else that might help.
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: I searched existing issues and this hasn't been reported.
+          required: true
+        - label: I removed all secrets (Client Secret, Bot Token, API keys) from this report.
+          required: true

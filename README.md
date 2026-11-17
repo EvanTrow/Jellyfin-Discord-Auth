@@ -120,3 +120,8 @@ Behavior during login:
 - Treat `Client Secret` and `Bot Token` as secrets.
 - Rotate secrets immediately if exposed.
 - Use HTTPS for production Jellyfin access.
+
+## Development
+
+- [Contributing guidelines](CONTRIBUTING.md): dev setup, versioning, pull request requirements, and AI use disclosure.
+- [GitHub Actions workflows](docs/WORKFLOWS.md): how version checks, releases, and manifest updates are automated.

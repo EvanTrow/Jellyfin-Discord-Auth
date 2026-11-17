@@ -1,0 +1,61 @@
+name: Feature request
+description: Suggest an idea or improvement for the plugin.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion! Please search [existing issues](https://github.com/EvanTrow/Jellyfin-Discord-Auth/issues) first to see if it's already been requested.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the use case or limitation you're running into.
+      placeholder: e.g. I want users with a specific Discord role to get admin access in Jellyfin...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would you like it to work?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds or other approaches you've tried or thought about.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Discord login / OAuth
+        - Role sync / user access
+        - Discord bot
+        - Plugin configuration page
+        - Documentation
+        - Other
+
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Would you be willing to open a PR for this?
+      description: See [CONTRIBUTING.md](https://github.com/EvanTrow/Jellyfin-Discord-Auth/blob/main/CONTRIBUTING.md).
+      options:
+        - "Yes"
+        - Maybe, with some guidance
+        - "No"
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Mockups, screenshots, links to similar features elsewhere, etc.

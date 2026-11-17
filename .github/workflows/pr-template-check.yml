@@ -1,0 +1,100 @@
+name: PR template check
+
+on:
+  pull_request:
+    branches:
+      - main
+    # "edited" re-runs the check when the PR description is changed.
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  pr-template-check:
+    # The Release workflow's automated manifest PRs don't use the template.
+    # A skipped job counts as passing for required status checks.
+    if: github.event.pull_request.user.login != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate PR description fields
+        env:
+          # Passed via env (never interpolated into the script) so PR text can't inject shell code.
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          BODY=$(printf '%s' "$PR_BODY" | tr -d '\r')
+          FAILED=0
+
+          # --- AI use disclosure ---------------------------------------------------
+          AI_LINE=$(printf '%s\n' "$BODY" | grep -iE '^[[:space:]]*AI used:' | head -1 || true)
+          AI_ANSWER=$(printf '%s' "$AI_LINE" | sed -E 's/^[[:space:]]*[Aa][Ii] used:[[:space:]]*//; s/[*_`]//g; s/[[:space:]]+$//' | tr '[:upper:]' '[:lower:]')
+
+          if [ -z "$AI_LINE" ]; then
+            echo "::error::Missing 'AI used:' line. Use the pull request template and answer Yes or No."
+            FAILED=1
+          elif [ "$AI_ANSWER" != "yes" ] && [ "$AI_ANSWER" != "no" ]; then
+            echo "::error::'AI used:' must be answered with Yes or No (found: '${AI_ANSWER:-<blank>}')."
+            FAILED=1
+          else
+            echo "AI used: $AI_ANSWER"
+          fi
+
+          # --- Type of Change --------------------------------------------------------
+          # Lines between the "## Type of Change" heading and the next "## " heading.
+          TYPE_SECTION=$(printf '%s\n' "$BODY" | awk 'tolower($0) ~ /^##[[:space:]]+type of change/ {f=1; next} /^##[[:space:]]/ {f=0} f')
+          TYPE_CHECKED=$(printf '%s\n' "$TYPE_SECTION" | grep -E '^[[:space:]]*[-*][[:space:]]+\[[xX]\]' || true)
+
+          if ! printf '%s\n' "$BODY" | grep -qiE '^##[[:space:]]+type of change'; then
+            echo "::error::Missing '## Type of Change' section. Use the pull request template."
+            FAILED=1
+          elif [ -z "$TYPE_CHECKED" ]; then
+            echo "::error::Tick at least one 'Type of Change' box (replace [ ] with [x])."
+            FAILED=1
+          else
+            echo "Type of Change:"
+            printf '%s\n' "$TYPE_CHECKED" | sed -E 's/^[[:space:]]*[-*][[:space:]]+\[[xX]\][[:space:]]*/  - /'
+          fi
+
+          # --- New version ---------------------------------------------------------
+          VER_LINE=$(printf '%s\n' "$BODY" | grep -iE '^[[:space:]]*New version:' | head -1 || true)
+          VER_ANSWER=$(printf '%s' "$VER_LINE" | sed -E 's/^[[:space:]]*[Nn]ew version:[[:space:]]*//; s/[*_`]//g; s/^[vV]//; s/[[:space:]]+$//')
+
+          META_VER=$(jq -r '.version' JellyfinDiscordAuth/meta.json)
+          CHANGED=$(git diff --name-only origin/main...HEAD)
+          if echo "$CHANGED" | grep -qE '^JellyfinDiscordAuth/|^[^/]+\.(sln|ruleset|ps1)$'; then
+            SOURCE_CHANGED=true
+          else
+            SOURCE_CHANGED=false
+          fi
+
+          if [ -z "$VER_LINE" ]; then
+            echo "::error::Missing 'New version:' line. Use the pull request template and type the new version."
+            FAILED=1
+          elif [ -z "$VER_ANSWER" ]; then
+            echo "::error::'New version:' is blank. Type the version from meta.json ($META_VER), or N/A for non-source changes."
+            FAILED=1
+          elif [ "$(printf '%s' "$VER_ANSWER" | tr '[:upper:]' '[:lower:]')" = "n/a" ]; then
+            if [ "$SOURCE_CHANGED" = "true" ]; then
+              echo "::error::This PR changes plugin source, so 'New version:' can't be N/A. Type the new version ($META_VER in meta.json)."
+              FAILED=1
+            else
+              echo "New version: N/A (no plugin source changes)"
+            fi
+          elif ! printf '%s' "$VER_ANSWER" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::'New version:' must be a four-part version like 1.2.1.0 (found: '$VER_ANSWER')."
+            FAILED=1
+          elif [ "$VER_ANSWER" != "$META_VER" ]; then
+            echo "::error file=JellyfinDiscordAuth/meta.json::'New version:' ($VER_ANSWER) doesn't match meta.json ($META_VER)."
+            FAILED=1
+          else
+            echo "New version: $VER_ANSWER (matches meta.json)"
+          fi
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo ""
+            echo "Edit the PR description to fix the fields above; this check re-runs automatically."
+            exit 1
+          fi
