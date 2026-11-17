@@ -9,7 +9,7 @@ $pluginName = $meta.name -replace '[\\/:*?"<>|]', '-'
 
 $pluginsRoot = Join-Path $JellyfinDataPath "plugins"
 $destination = Join-Path $pluginsRoot "${pluginName}_${version}"
-$sourceDir = "bin\Debug\net9.0"
+$sourceDir = "bin\Debug\net10.0"
 
 $filesToCopy = @(
     "JellyfinDiscordAuth.dll",
